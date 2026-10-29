@@ -99,3 +99,12 @@ is why the feed keeps working after the day you install it.
 MIT © Grey Ridge Signals Group LLC. Job content belongs to the respective employers and their ATS
 providers; this tool only retrieves and normalizes publicly listed postings. Respect each source's
 terms and rate limits.
+
+
+## Related tools (same maintained engine)
+
+Prefer a plain CLI, or a company-level signal instead of an MCP tool?
+
+- **[ats-jobs-scraper-cli](https://github.com/rezearcher/ats-jobs-scraper-cli)** — the same 8-ATS feed as a zero-dependency command-line tool.
+- **[unified-jobs-scraper-cli](https://github.com/rezearcher/unified-jobs-scraper-cli)** — adds LinkedIn public postings and cross-source dedup.
+- **[company-enrichment-cli](https://github.com/rezearcher/company-enrichment-cli)** — domain → one clean company record (firmographics, contacts, tech stack) with a rolled-up hiring-intensity signal from the same ATS engine; sales/prospecting buying-intent rather than a raw job feed.
