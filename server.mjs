@@ -215,6 +215,10 @@ async function handle(msg) {
 
 function main() {
   const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+  let inFlight = 0;
+  let closed = false;
+  const maybeExit = () => { if (closed && inFlight === 0) process.exit(0); };
+
   rl.on('line', (line) => {
     const text = line.trim();
     if (!text) return;
@@ -226,12 +230,17 @@ function main() {
       error(null, -32700, 'parse error');
       return;
     }
-    // Fire-and-forget; responses are ordered by the awaits inside handle().
-    handle(msg).catch((e) => {
-      if (msg && msg.id !== undefined && msg.id !== null) error(msg.id, -32603, `internal error: ${e?.message || e}`);
-    });
+    // Track in-flight work so EOF (a one-shot pipe) never kills a request that
+    // is still awaiting a live fetch. Responses stay ordered by the awaits in handle().
+    inFlight += 1;
+    handle(msg)
+      .catch((e) => {
+        if (msg && msg.id !== undefined && msg.id !== null) error(msg.id, -32603, `internal error: ${e?.message || e}`);
+      })
+      .finally(() => { inFlight -= 1; maybeExit(); });
   });
-  rl.on('close', () => process.exit(0));
+  // On stdin EOF, drain any in-flight requests before exiting rather than cutting them off.
+  rl.on('close', () => { closed = true; maybeExit(); });
 }
 
 main();
