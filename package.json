@@ -1,7 +1,7 @@
 {
   "name": "greyridge-jobs-mcp",
-  "version": "0.1.0",
-  "description": "Zero-dependency MCP server: live, normalized job postings across 8 ATS platforms (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Recruitee, Workable, BambooHR) with company auto-detection. No API key, no account.",
+  "version": "0.2.0",
+  "description": "Zero-dependency MCP server: live, normalized job postings across 8 ATS platforms (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Recruitee, Workable, BambooHR) plus the Hacker News \"Who is hiring?\" thread, with company auto-detection. No API key, no account.",
   "type": "module",
   "bin": {
     "greyridge-jobs-mcp": "server.mjs"
@@ -9,7 +9,7 @@
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node test/roundtrip.mjs"
+    "test": "node test/hn_check.mjs && node test/roundtrip.mjs"
   },
   "files": [
     "server.mjs",
@@ -33,6 +33,8 @@
     "workday",
     "recruiting",
     "hiring",
+    "hacker-news",
+    "whoishiring",
     "claude",
     "cursor",
     "ai-agent"

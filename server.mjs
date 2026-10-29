@@ -14,9 +14,10 @@
 
 import { scrape, parseEntry } from './src/scrape.js';
 import { PLATFORMS } from './src/adapters.js';
+import { searchHnHiring } from './src/hn/index.js';
 import { createInterface } from 'node:readline';
 
-const SERVER_INFO = { name: 'greyridge-jobs-mcp', version: '0.1.0' };
+const SERVER_INFO = { name: 'greyridge-jobs-mcp', version: '0.2.0' };
 const DEFAULT_PROTOCOL = '2025-06-18';
 const SUPPORTED_PROTOCOLS = new Set(['2025-06-18', '2025-03-26', '2024-11-05']);
 
@@ -78,6 +79,41 @@ const TOOLS = [
       'auto-detect covers it). No network call.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
+  {
+    name: 'search_hn_hiring',
+    description:
+      'Search the CURRENT month\'s Hacker News "Ask HN: Who is hiring?" thread for live job postings, ' +
+      'normalized into the same unified schema as search_jobs (title, company, location, remote, ' +
+      'employment_type, salary, url, source_platform). The monthly thread id is auto-discovered (it ' +
+      'rotates on the 1st of every month) and each free-text post header is parsed into structured ' +
+      'fields. Optionally filter by a keyword and/or remote-only. No company list needed — this is the ' +
+      'whole thread. source_platform is "hn"; url is the apply link when present, else the HN permalink.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Case-insensitive substring filter over title + company + snippet (e.g. "rust", "senior backend"). Omit for all posts.',
+        },
+        remoteOnly: {
+          type: 'boolean',
+          description: 'Keep only postings classified as remote. Default false.',
+          default: false,
+        },
+        maxResults: {
+          type: 'integer',
+          description: 'Cap postings returned (default 50, max 200).',
+          default: 50,
+        },
+        includeDescription: {
+          type: 'boolean',
+          description: 'Include the post body snippet as the description. Default false.',
+          default: false,
+        },
+      },
+      additionalProperties: false,
+    },
+  },
 ];
 
 // ---- tool handlers ---------------------------------------------------------
@@ -120,6 +156,30 @@ async function toolDetectAts(args) {
   return { input: company, detected: false, error: r.error || 'no ATS detected' };
 }
 
+async function toolSearchHnHiring(args) {
+  // HN is a single whole-thread pull (no per-company fan-out), so it carries a higher
+  // default cap (50) than search_jobs. searchHnHiring clamps to [1,200] internally.
+  const opts = {
+    query: typeof args?.query === 'string' ? args.query : undefined,
+    remoteOnly: !!args?.remoteOnly,
+    maxResults: args?.maxResults,
+    includeDescription: !!args?.includeDescription,
+  };
+  const { thread, count, jobs } = await searchHnHiring(opts);
+  return {
+    query: {
+      query: opts.query ?? null,
+      remoteOnly: opts.remoteOnly,
+      maxResults: Number(args?.maxResults) > 0 ? Math.min(Math.floor(Number(args.maxResults)), 200) : 50,
+      includeDescription: opts.includeDescription,
+    },
+    source: 'hackernews-whoishiring',
+    thread,
+    count,
+    jobs,
+  };
+}
+
 function toolListPlatforms() {
   const notes = {
     greenhouse: 'slug e.g. "stripe" — auto-detected',
@@ -146,6 +206,8 @@ async function dispatchTool(name, args) {
       return toolDetectAts(args);
     case 'list_platforms':
       return toolListPlatforms();
+    case 'search_hn_hiring':
+      return toolSearchHnHiring(args);
     default:
       throw new Error(`unknown tool: ${name}`);
   }
@@ -185,7 +247,8 @@ async function handle(msg) {
         serverInfo: SERVER_INFO,
         instructions:
           'Normalized multi-ATS job feed. Call list_platforms to see coverage, detect_ats to resolve a ' +
-          'company to its ATS, search_jobs to pull live normalized postings.',
+          'company to its ATS, search_jobs to pull live normalized postings, and search_hn_hiring to read ' +
+          'the current month\'s Hacker News "Who is hiring?" thread in the same schema.',
       });
       return;
     }

@@ -75,7 +75,7 @@ function parseToolJSON(res) {
   // 4. tools/list
   const list = await rpc('tools/list', {});
   const names = (list.result?.tools || []).map((t) => t.name).sort();
-  assert(JSON.stringify(names) === JSON.stringify(['detect_ats', 'list_platforms', 'search_jobs']), 'tools/list returns 3 tools');
+  assert(JSON.stringify(names) === JSON.stringify(['detect_ats', 'list_platforms', 'search_hn_hiring', 'search_jobs']), 'tools/list returns 4 tools');
   assert((list.result.tools || []).every((t) => t.inputSchema?.type === 'object'), 'every tool has an object inputSchema');
 
   // 5. list_platforms (offline)
@@ -97,6 +97,14 @@ function parseToolJSON(res) {
   assert(bh.count >= 1, `search_jobs(bamboohr:greenhousejuice) -> ${bh.count} live jobs`);
   const bj = (bh.jobs || [])[0] || {};
   assert(!!bj.title && /\.bamboohr\.com\/careers\//.test(bj.url || '') && bj.source_platform === 'bamboohr', 'live BambooHR job has title + careers URL + source_platform');
+
+  // 7c. search_hn_hiring LIVE — discovers the current month's "Who is hiring?" thread,
+  // parses the free-text posts into the unified schema. Keyword-filtered to keep it small.
+  const hn = parseToolJSON(await rpc('tools/call', { name: 'search_hn_hiring', arguments: { query: 'engineer', maxResults: 10 } }));
+  assert(hn.count >= 1, `search_hn_hiring(query=engineer) -> ${hn.count} live posts`);
+  assert(!!hn.thread?.id && /who is hiring/i.test(hn.thread?.title || ''), `resolved current HN thread (${hn.thread?.title || '?'})`);
+  const hj = (hn.jobs || [])[0] || {};
+  assert(!!hj.title && !!hj.company && !!hj.url && hj.source_platform === 'hn', 'live HN post has title+company+url+source_platform=hn');
 
   // 8. error path: unknown method -> JSON-RPC -32601
   const bad = await rpc('does/not/exist', {});

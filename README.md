@@ -23,6 +23,8 @@ and board token for you and returns postings with stable field names across ever
 - **Normalized schema.** `title · company · location · remote · employment_type · department ·
   posted_at (ISO) · salary · url · source_platform` — same shape whoever the employer uses.
 - **Auto-detect.** Pass a slug or domain; the ATS and token are resolved for you.
+- **Plus Hacker News "Who is hiring?"** The `search_hn_hiring` tool reads the current month's thread
+  into the same schema, and finds next month's thread by itself when it is posted.
 
 ## Install
 
@@ -64,6 +66,7 @@ npm test                 # real client handshake + live-data roundtrip
 | `search_jobs` | Live normalized postings for one or more companies. Args: `companies` (string[]), `maxPerCompany` (default 25, max 200), `includeDescription` (default false). |
 | `detect_ats` | Resolve a company slug/domain to `{platform, token}` without pulling the full list. |
 | `list_platforms` | The 8 supported platforms and how to address each. No network call. |
+| `search_hn_hiring` | Live postings from the **current** month's Hacker News *"Ask HN: Who is hiring?"* thread, parsed into the same schema. Args: `query` (keyword filter), `remoteOnly` (default false), `maxResults` (default 50, max 200), `includeDescription`. The monthly thread id is auto-discovered — it rotates on the 1st of every month, so you never re-point it. |
 
 ### Example
 
@@ -76,6 +79,14 @@ The model calls:
 ```
 
 and gets back a `jobs[]` array plus a `resolutions[]` log showing how each company was resolved.
+
+Or, to sweep the whole Hacker News hiring thread: *"Find remote Rust roles in this month's HN
+who-is-hiring thread."* →
+
+```json
+{ "name": "search_hn_hiring",
+  "arguments": { "query": "rust", "remoteOnly": true } }
+```
 
 ## Addressing a company
 
