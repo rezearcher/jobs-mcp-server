@@ -8,9 +8,9 @@ A **Model Context Protocol** server that gives any MCP client — Claude Desktop
 Continue, or your own agent — a live, normalized feed of open job postings pulled straight from
 company applicant-tracking systems.
 
-One tool call, seven ATS platforms, one clean schema:
+One tool call, eight ATS platforms, one clean schema:
 
-> **Greenhouse · Lever · Ashby · SmartRecruiters · Workday · Recruitee · Workable**
+> **Greenhouse · Lever · Ashby · SmartRecruiters · Workday · Recruitee · Workable · BambooHR**
 
 Give it a bare company name (`stripe`), a domain (`stripe.com`), or an explicit board
 (`greenhouse:stripe`, `workday:nvidia.wd5:NVIDIAExternalCareerSite`) — the server detects the ATS
@@ -63,7 +63,7 @@ npm test                 # real client handshake + live-data roundtrip
 |------|--------------|
 | `search_jobs` | Live normalized postings for one or more companies. Args: `companies` (string[]), `maxPerCompany` (default 25, max 200), `includeDescription` (default false). |
 | `detect_ats` | Resolve a company slug/domain to `{platform, token}` without pulling the full list. |
-| `list_platforms` | The 7 supported platforms and how to address each. No network call. |
+| `list_platforms` | The 8 supported platforms and how to address each. No network call. |
 
 ### Example
 

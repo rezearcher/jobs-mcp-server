@@ -80,7 +80,7 @@ function parseToolJSON(res) {
 
   // 5. list_platforms (offline)
   const plats = parseToolJSON(await rpc('tools/call', { name: 'list_platforms', arguments: {} }));
-  assert(plats.count === 7 && plats.platforms.includes('greenhouse'), 'list_platforms -> 7 platforms');
+  assert(plats.count === 8 && plats.platforms.includes('greenhouse') && plats.platforms.includes('bamboohr'), 'list_platforms -> 8 platforms (incl bamboohr)');
 
   // 6. detect_ats LIVE
   const det = parseToolJSON(await rpc('tools/call', { name: 'detect_ats', arguments: { company: 'bunq' } }));
@@ -91,6 +91,12 @@ function parseToolJSON(res) {
   assert(search.count >= 1, `search_jobs(greenhouse:stripe) -> ${search.count} live jobs`);
   const j = (search.jobs || [])[0] || {};
   assert(!!j.title && !!j.url && j.source_platform === 'greenhouse', 'live job has title+url+source_platform');
+
+  // 7b. search_jobs LIVE on BambooHR (the new 8th platform, keyless detail-enriched)
+  const bh = parseToolJSON(await rpc('tools/call', { name: 'search_jobs', arguments: { companies: ['bamboohr:greenhousejuice'], maxPerCompany: 3 } }));
+  assert(bh.count >= 1, `search_jobs(bamboohr:greenhousejuice) -> ${bh.count} live jobs`);
+  const bj = (bh.jobs || [])[0] || {};
+  assert(!!bj.title && /\.bamboohr\.com\/careers\//.test(bj.url || '') && bj.source_platform === 'bamboohr', 'live BambooHR job has title + careers URL + source_platform');
 
   // 8. error path: unknown method -> JSON-RPC -32601
   const bad = await rpc('does/not/exist', {});

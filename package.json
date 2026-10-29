@@ -1,7 +1,7 @@
 {
   "name": "greyridge-jobs-mcp",
   "version": "0.1.0",
-  "description": "Zero-dependency MCP server: live, normalized job postings across 7 ATS platforms (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Recruitee, Workable) with company auto-detection. No API key, no account.",
+  "description": "Zero-dependency MCP server: live, normalized job postings across 8 ATS platforms (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Recruitee, Workable, BambooHR) with company auto-detection. No API key, no account.",
   "type": "module",
   "bin": {
     "greyridge-jobs-mcp": "server.mjs"

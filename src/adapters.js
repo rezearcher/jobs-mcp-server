@@ -364,6 +364,72 @@ async function workable(token, { includeDescription, maxItems }) {
   return out;
 }
 
+// ---- BambooHR (public careers JSON) --------------------------------------
+// Keyless GET at https://{slug}.bamboohr.com/careers/list — the public careers
+// feed every BambooHR-hosted board exposes ({meta:{totalCount}, result:[...]}).
+// BambooHR is the US SMB long tail (17k+ companies) that the Greenhouse/Lever
+// enterprise/startup adapters miss — complementary coverage, not redundant.
+// The list payload is thin (no post date / description / salary); the keyless
+// per-job detail GET (/careers/{id}/detail -> result.jobOpening) carries the
+// real datePosted, employment type, country and full description, fetched only
+// when includeDescription is set. Token is a bare company slug.
+async function bamboohr(token, { includeDescription, maxItems }) {
+  const slug = String(token || '').trim().toLowerCase();
+  // SSRF/host-injection guard: the slug becomes a subdomain, so pin it to a
+  // genuine BambooHR tenant label (alnum + hyphen) before building any URL —
+  // never let "evil.com/x" or an IP slip into the host (cf. parseWorkdayToken).
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) return [];
+  const base = `https://${slug}.bamboohr.com`;
+  const data = await getJSON(`${base}/careers/list`);
+  const result = Array.isArray(data && data.result) ? data.result : [];
+  const out = [];
+  for (const j of result) {
+    const loc = j.location || {};
+    const ats = j.atsLocation || {};
+    const locStr =
+      [loc.city, loc.state].filter(Boolean).join(', ') ||
+      [ats.city, ats.state || ats.province, ats.country].filter(Boolean).join(', ') ||
+      null;
+    let posted_at = null;
+    let employment_type = j.employmentStatusLabel || j.employmentType || null;
+    let salary = null;
+    let description_text = null;
+    let remote = j.isRemote === true ? true : boolRemoteFromText(locStr);
+    if (includeDescription) {
+      const info = await getJSON(`${base}/careers/${encodeURIComponent(j.id)}/detail`)
+        .then((d) => d && d.result && d.result.jobOpening)
+        .catch(() => null);
+      if (info) {
+        if (info.datePosted) posted_at = toISO(info.datePosted);
+        if (info.employmentStatusLabel) employment_type = info.employmentStatusLabel;
+        if (info.compensation) salary = String(info.compensation);
+        if (info.jobDescription || info.description) {
+          description_text = stripHtml(info.jobDescription || info.description);
+        }
+        if (remote !== true && info.locationType && String(info.locationType) === '2') remote = true;
+      }
+    }
+    out.push({
+      id: String(j.id),
+      title: j.jobOpeningName || null,
+      department: j.departmentLabel || null,
+      team: null,
+      location: locStr,
+      remote,
+      employment_type,
+      url: `${base}/careers/${encodeURIComponent(j.id)}`,
+      posted_at,
+      updated_at: null,
+      salary,
+      description_text,
+      source_platform: 'bamboohr',
+      source_token: slug,
+    });
+    if (maxItems && out.length >= maxItems) break;
+  }
+  return out;
+}
+
 // Normalize an ATS enum code ("fulltime_fixed_term", "full") into a readable
 // label: split on _/-, title-case words. Returns null for empty.
 function cleanEnum(code) {
@@ -397,11 +463,14 @@ function formatSalary(min, max, cur) {
 }
 
 export { parseWorkdayToken }; // exported for the SSRF-guard regression test
-export const ADAPTERS = { greenhouse, lever, ashby, smartrecruiters, workday, recruitee, workable };
+export const ADAPTERS = { greenhouse, lever, ashby, smartrecruiters, workday, recruitee, workable, bamboohr };
 export const PLATFORMS = Object.keys(ADAPTERS);
 // Platforms probed during bare-domain/slug auto-detect. Workday is explicit-only
 // (its target needs tenant.wdN:site, not a slug) so it is excluded from the probe
 // loop to avoid a wasteful POST per candidate; it still resolves via "workday:..".
 // Recruitee (keyless GET) and Workable (keyless POST) take a plain company slug,
-// so both join the probe loop.
-export const DETECT_PLATFORMS = ['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'recruitee', 'workable'];
+// so both join the probe loop. BambooHR (keyless GET on {slug}.bamboohr.com)
+// takes a plain slug too — probed LAST so an established-platform match wins
+// first and a company that happens to have a stale/empty BambooHR board (which
+// returns 0 jobs, so it never false-wins anyway) can't shadow its real board.
+export const DETECT_PLATFORMS = ['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'recruitee', 'workable', 'bamboohr'];
