@@ -1,14 +1,15 @@
-# Grey Ridge Jobs MCP
+# Greenhouse Jobs MCP Server
 
 [![smoke](https://github.com/rezearcher/jobs-mcp-server/actions/workflows/smoke.yml/badge.svg)](https://github.com/rezearcher/jobs-mcp-server/actions/workflows/smoke.yml)
 [![MCP](https://img.shields.io/badge/MCP-stdio-blue)](https://modelcontextprotocol.io)
 [![deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
 
 A **Model Context Protocol** server that gives any MCP client — Claude Desktop, Cursor, Cline,
-Continue, or your own agent — a live, normalized feed of open job postings pulled straight from
-company applicant-tracking systems.
+Continue, or your own agent — live, normalized job postings straight from a company's
+**Greenhouse** board (the most-requested ATS feed), plus seven more applicant-tracking systems
+in one clean schema.
 
-One tool call, eight ATS platforms, one clean schema:
+One tool call, Greenhouse + seven more ATS platforms, one clean schema:
 
 > **Greenhouse · Lever · Ashby · SmartRecruiters · Workday · Recruitee · Workable · BambooHR**
 
