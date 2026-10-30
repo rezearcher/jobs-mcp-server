@@ -2,11 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.rezearcher/jobs-mcp-server",
   "title": "Multi-ATS Jobs MCP Server",
-  "description": "Live multi-ATS + HN job search, free. Normalized comp & hiring-signal depth metered via x402/USDC.",
-  "version": "0.3.0",
+  "description": "Free live multi-ATS + HN job search. Comp & hiring-signal depth metered via x402/USDC. Hosted MCP.",
+  "version": "0.4.0",
   "websiteUrl": "https://github.com/rezearcher/jobs-mcp-server",
   "repository": {
     "url": "https://github.com/rezearcher/jobs-mcp-server",
     "source": "github"
-  }
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://assetfactory-jobs-x402.sigrunner.workers.dev/mcp"
+    }
+  ]
 }
