@@ -17,9 +17,57 @@ import { PLATFORMS } from './src/adapters.js';
 import { searchHnHiring } from './src/hn/index.js';
 import { createInterface } from 'node:readline';
 
-const SERVER_INFO = { name: 'greyridge-jobs-mcp', version: '0.2.0' };
+const SERVER_INFO = { name: 'greyridge-jobs-mcp', version: '0.3.0' };
 const DEFAULT_PROTOCOL = '2025-06-18';
 const SUPPORTED_PROTOCOLS = new Set(['2025-06-18', '2025-03-26', '2024-11-05']);
+
+// ---- premium depth rail ----------------------------------------------------
+// The four tools below are free and read the live boards directly. Three
+// derived layers are heavier to maintain (markup drift, cross-ATS normalization,
+// cross-run state) so they are served metered, pay-per-call, over the x402 rail
+// — USDC on Base, no account and no API key, the agent's wallet pays the 402
+// inline. This constant is the single source of truth the get_premium_access
+// tool and the see_also hints read from; nothing here gates a free call.
+const PREMIUM = {
+  base_url: 'https://assetfactory-jobs-x402.sigrunner.workers.dev',
+  payment: {
+    protocol: 'x402',
+    scheme: 'exact',
+    network: 'eip155:8453',
+    network_name: 'Base',
+    asset: 'USDC',
+    pay_to: '0xE601c3FeCbf9Fe9DacAC10b8b87167944cfe93A2',
+    how: 'GET the endpoint with no payment to receive the signed 402 challenge, then retry with the X-PAYMENT header. Any x402-aware client (e.g. @x402/fetch) does this automatically from a funded wallet.',
+  },
+  endpoints: [
+    {
+      path: '/jobs/comp',
+      price_usd: 0.005,
+      what: 'Normalized compensation per posting: unifies structured ATS salary fields AND pay-transparency text in job descriptions into {min,max,currency,period,annualized}, plus a per-company disclosure rate and median band.',
+      why_paid: 'The pay-range widget markup and free-text phrasing drift constantly across employers; the normalizer needs upkeep a resold firmographics DB does not do.',
+    },
+    {
+      path: '/hiring/signal',
+      price_usd: 0.003,
+      what: 'Live hiring/buying-intent signal per company: open-req count, intensity grade, department + location histograms, newest-post recency — one aggregate record per company, not listings.',
+      why_paid: 'A rollup over the full maintained multi-ATS layer, computed at call time against the live boards.',
+    },
+    {
+      path: '/jobs/search',
+      price_usd: 0.004,
+      what: 'The same normalized multi-ATS search as the free search_jobs tool, run server-side over a maintained 10-ATS layer (adds Breezy + Personio) with full-description and high-volume pulls.',
+      why_paid: 'Metered access to the hosted, always-maintained feed when you do not want to run this stdio server yourself.',
+    },
+  ],
+  free_preview: '/jobs/preview?companies=stripe.com',
+};
+
+// A compact, honest upsell pointer attached to free listing results so an agent
+// that needs a derived layer knows exactly where it is — never a blocker.
+const SEE_ALSO = {
+  note: 'These rows are live and free. Derived layers (normalized compensation, hiring-intent signal) are available metered via x402/USDC on Base — call get_premium_access for details.',
+  premium_tool: 'get_premium_access',
+};
 
 // ---- tool definitions -----------------------------------------------------
 
@@ -114,6 +162,16 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'get_premium_access',
+    description:
+      'Describe the metered depth endpoints available beyond this free server: a normalized cross-ATS ' +
+      'compensation layer, a per-company hiring-intent signal, and a hosted high-volume multi-ATS search. ' +
+      'These are served pay-per-call over x402 (USDC on Base, no account/API key — the caller\'s wallet ' +
+      'pays the 402 inline). Returns the base URL, each endpoint\'s path + USD price + what it adds, and ' +
+      'the exact payment parameters (network, asset, pay-to, handshake). No network call, no payment.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
 ];
 
 // ---- tool handlers ---------------------------------------------------------
@@ -137,6 +195,23 @@ async function toolSearchJobs(args) {
     count: jobs.length,
     resolutions,
     jobs,
+    see_also: SEE_ALSO,
+  };
+}
+
+function toolGetPremiumAccess() {
+  return {
+    service: 'Grey Ridge Jobs — metered depth rail',
+    base_url: PREMIUM.base_url,
+    payment: PREMIUM.payment,
+    endpoints: PREMIUM.endpoints.map((e) => ({
+      url: PREMIUM.base_url + e.path,
+      price_usd: e.price_usd,
+      what: e.what,
+      why_paid: e.why_paid,
+    })),
+    free_preview_url: PREMIUM.base_url + PREMIUM.free_preview,
+    note: 'The four job-search tools on this server are free and read live boards directly. Pay only for the derived layers above, and only per call.',
   };
 }
 
@@ -177,6 +252,7 @@ async function toolSearchHnHiring(args) {
     thread,
     count,
     jobs,
+    see_also: SEE_ALSO,
   };
 }
 
@@ -208,6 +284,8 @@ async function dispatchTool(name, args) {
       return toolListPlatforms();
     case 'search_hn_hiring':
       return toolSearchHnHiring(args);
+    case 'get_premium_access':
+      return toolGetPremiumAccess();
     default:
       throw new Error(`unknown tool: ${name}`);
   }
@@ -248,7 +326,9 @@ async function handle(msg) {
         instructions:
           'Normalized multi-ATS job feed. Call list_platforms to see coverage, detect_ats to resolve a ' +
           'company to its ATS, search_jobs to pull live normalized postings, and search_hn_hiring to read ' +
-          'the current month\'s Hacker News "Who is hiring?" thread in the same schema.',
+          'the current month\'s Hacker News "Who is hiring?" thread in the same schema. These reads are free. ' +
+          'For derived layers — normalized cross-ATS compensation and a per-company hiring-intent signal — ' +
+          'call get_premium_access; those are metered pay-per-call over x402 (USDC on Base, no account).',
       });
       return;
     }

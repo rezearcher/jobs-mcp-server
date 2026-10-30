@@ -68,6 +68,15 @@ npm test                 # real client handshake + live-data roundtrip
 | `detect_ats` | Resolve a company slug/domain to `{platform, token}` without pulling the full list. |
 | `list_platforms` | The 8 supported platforms and how to address each. No network call. |
 | `search_hn_hiring` | Live postings from the **current** month's Hacker News *"Ask HN: Who is hiring?"* thread, parsed into the same schema. Args: `query` (keyword filter), `remoteOnly` (default false), `maxResults` (default 50, max 200), `includeDescription`. The monthly thread id is auto-discovered — it rotates on the 1st of every month, so you never re-point it. |
+| `get_premium_access` | Describe the metered depth endpoints beyond the free reads above — a normalized cross-ATS **compensation** layer and a per-company **hiring-intent signal** — served pay-per-call over x402 (USDC on Base, no account, the caller's wallet pays the 402 inline). No network call, no payment. |
+
+### Free vs. metered
+
+The four search tools above are **free** and read the live boards directly. Two derived layers are
+heavier to keep correct — pay-transparency text drifts, cross-ATS comp needs normalizing — so they
+are served **pay-per-call** over the [x402](https://x402.org) rail (USDC on Base, no API key): a few
+tenths of a cent per call. Call `get_premium_access` for the exact endpoints, prices, and payment
+handshake, or hit the free preview first: `https://assetfactory-jobs-x402.sigrunner.workers.dev/jobs/preview?companies=stripe.com`.
 
 ### Example
 

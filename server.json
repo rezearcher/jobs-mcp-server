@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.rezearcher/jobs-mcp-server",
   "title": "Multi-ATS Jobs MCP Server",
-  "description": "Live job postings across 8 ATS platforms + HN \"Who is hiring?\". Auto-detect company, no API key.",
-  "version": "0.2.0",
+  "description": "Live multi-ATS + HN job search, free. Normalized comp & hiring-signal depth metered via x402/USDC.",
+  "version": "0.3.0",
   "websiteUrl": "https://github.com/rezearcher/jobs-mcp-server",
   "repository": {
     "url": "https://github.com/rezearcher/jobs-mcp-server",
